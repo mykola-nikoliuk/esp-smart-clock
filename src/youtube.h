@@ -1,16 +1,15 @@
-#ifndef __WEATHER__
-#define __WEATHER__
+#ifndef __YOUTUBE__
+#define __YOUTUBE__
 
 #include <Arduino.h>
 #include "lib/Regexp/Regexp.h"
 #include "connection.h"
 #include "config.h"
 
-struct Weather {
-  Weather();
-  int temperature;
-  int humidity;
-  int windSpeed;
+struct Youtube {
+  Youtube();
+  double subscribers;
+  double views;
   void update();
 };
 

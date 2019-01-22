@@ -1,64 +1,45 @@
 #include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Max72xxPanel.h>
-
 #include <Wire.h>
-#include <HTU21D.h>
 #include <String.h>
 
+#include "src/lib/Adafruit_GFX/Adafruit_GFX.h"
+#include "src/lib/Max72xxPanel/Max72xxPanel.h"
+#include "src/lib/HTU21D/HTU21D.h"
+
+#include "src/connection.h"
 #include "src/time.h"
 #include "src/weather.h"
+#include "src/youtube.h"
 #include "src/font5x8.h"
 #include "src/font3x5.h"
 
-#define TIME_UPDATE_PERIOD    500
-#define SLIDER_UPDATE_PERIOD  5000
-#define SLIDER_COUNT          4
+#define TIME_UPDATE_PERIOD        500
+#define TIME_SYNC_PERIOD          5 * 60
+#define BRIGHTNESS_UPDATE_PERIOD  50
+#define SLIDER_UPDATE_PERIOD      5000
+#define SLIDER_COUNT              4
 
 HTU21D localClimate;
 
-
-/*
- HTU21D Humidity Sensor Example Code
- By: Nathan Seidle
- SparkFun Electronics
- Date: September 15th, 2013
- License: This code is public domain but you buy me a beer if you use this and we meet someday (Beerware license).
-
- Uses the HTU21D library to display the current humidity and temperature
-
- Open serial monitor at 9600 baud to see readings. Errors 998 if not sensor is detected. Error 999 if CRC is bad.
-
- Hardware Connections (Breakoutboard to Arduino):
- -VCC = 3.3V
- -GND = GND
- -SDA = A4 (use inline 10k resistor if your board is 5V)
- -SCL = A5 (use inline 10k resistor if your board is 5V)
-
- */
-
-
-int pinCS = 9; // Attach CS to this pin, DIN to MOSI and CLK to SCK (cf http://arduino.cc/en/Reference/SPI )
+int pinCS = D8; // Attach CS to this pin, DIN to MOSI and CLK to SCK (cf http://arduino.cc/en/Reference/SPI )
 int numberOfHorizontalDisplays = 4;
 int numberOfVerticalDisplays = 2;
 
 Max72xxPanel matrix = Max72xxPanel(pinCS, numberOfHorizontalDisplays, numberOfVerticalDisplays);
 
-int pinRandom = A0;
-
-int wait = 20; // In milliseconds
-
-
+int tonePin = 12;
 
 
 time_t unixTime = 0;
 time_t lastTimePeriod = -1;
 time_t lastTimeUpdate = 0;
-time_t lastTimeSync = 0;
-
-
+time_t lastTimeSync = -TIME_SYNC_PERIOD;
 time_t lastSliderPeriod = -1;
 
+time_t lastBrightnessUpdate = -BRIGHTNESS_UPDATE_PERIOD;
+
+Weather *weather;
+Youtube *youtube;
 
 
 int x = numberOfHorizontalDisplays * 8 / 2;
@@ -97,10 +78,8 @@ void timeUpdate(time_t currentTime) {
     }
 
     char *timeStr = getShortTime();
-    char *secondsStr = getSeconds();
     Serial.print(timeStr);
     Serial.print(" | ");
-    Serial.println(secondsStr);
 
     matrix.fillRect(0, 0, numberOfHorizontalDisplays * 8, 8, 0);
 
@@ -112,6 +91,8 @@ void timeUpdate(time_t currentTime) {
     draw5x8(11, 0, timeStr[3]);
     draw5x8(17, 0, timeStr[4]);
 
+    char *secondsStr = getSeconds();
+    Serial.println(secondsStr);
     matrix.setRotation(3, 0);
     draw3x5(25, 3, secondsStr[0]);
     draw3x5(29, 3, secondsStr[1]);
@@ -119,8 +100,13 @@ void timeUpdate(time_t currentTime) {
 
     matrix.write();
 
-    delete timeStr;
-    delete secondsStr;
+    Serial.print(lastTimeSync);
+    Serial.print(" | ");
+    Serial.println(unixTime);
+    Serial.print("sensor: ");
+    Serial.println(analogRead(A0));
+    Serial.print("connection: ");
+    Serial.println(WiFi.status());
   }
 }
 
@@ -128,7 +114,6 @@ void dateUpdate() {
     char *dateStr = getShortDate();
     draw3x5String(2, 9, dateStr);
     Serial.println(dateStr);
-    delete dateStr;
 }
 
 void localClimateUpdate() {
@@ -154,26 +139,36 @@ void localClimateUpdate() {
 }
 
 void externalClimateUpdate() {
-  Weather *climate = new Weather();
   char buffer[5];
 
-  sprintf(buffer, "%d*", climate->temperature);
+  weather->update();
+
+  sprintf(buffer, "%d*", weather->temperature);
   draw3x5String(0, 9, buffer);
-  sprintf(buffer, "%d%%", climate->humidity);
+  sprintf(buffer, "%d%%", weather->humidity);
   draw3x5String(13, 9, buffer);
-  sprintf(buffer, "%d", climate->windSpeed);
+  sprintf(buffer, "%d", weather->windSpeed);
   draw3x5String(25, 9, buffer);
 
   Serial.println("EXTERNAL:");
   Serial.print("Temperature:");
-  Serial.print(climate->temperature);
+  Serial.print(weather->temperature);
   Serial.print("C");
   Serial.print(" | Humidity:");
-  Serial.print(climate->humidity);
+  Serial.print(weather->humidity);
   Serial.print("%");
   Serial.print(" | Wind speed:");
-  Serial.print(climate->windSpeed);
+  Serial.print(weather->windSpeed);
   Serial.println("km/h");
+}
+
+void youtubeUpdate() {
+  char buffer[16];
+
+  youtube->update();
+
+  sprintf(buffer, "%d*%d", youtube->subscribers, youtube->views);
+  draw3x5String(0, 9, buffer);
 }
 
 void sliderUpdate(time_t currentTime) {
@@ -189,16 +184,16 @@ void sliderUpdate(time_t currentTime) {
 
     switch (index) {
       case 0:
-        dateUpdate();
-        break;
-      case 1:
         localClimateUpdate();
         break;
-      case 2:
+      case 1:
         externalClimateUpdate();
         break;
+      case 2:
+//        youtubeUpdate();
+        break;
       case 3:
-        draw3x5String(6, 9, "-------");
+        dateUpdate();
         break;
     }
 
@@ -206,7 +201,33 @@ void sliderUpdate(time_t currentTime) {
   }
 }
 
+void syncTime() {
+  if ((lastTimeSync + TIME_SYNC_PERIOD) < unixTime) {
+    if (Connection::isConnected()) {
+      Serial.println("Sync time");
+      char *payload = Connection::get("http://worldtimeapi.org/api/ip");
+      unixTime = parseTime(payload);
+      setTime(unixTime);
+      lastTimeUpdate = millis() / 1000;
+      lastTimeSync = unixTime;
+    }
+  }
+}
+
+void brightness(time_t currentTime) {
+  if (lastBrightnessUpdate + BRIGHTNESS_UPDATE_PERIOD < currentTime) {
+    lastBrightnessUpdate = currentTime;
+    int brightness = analogRead(A0) / 800. * 14 + 1;
+    brightness = brightness > 15 ? 15 : brightness;
+    matrix.setIntensity(brightness);
+  }
+}
+
 void setup() {
+//  pinMode(tonePin, OUTPUT);
+
+//  tone(tonePin, 262, 2000);
+
   matrix.setIntensity(0); // Set brightness between 0 and 15
 
 // Adjust to your own needs
@@ -224,51 +245,15 @@ void setup() {
   matrix.setRotation(6, 3);    // The same hold for the last display
   matrix.setRotation(7, 3);    // The same hold for the last display
 
-  randomSeed(analogRead(pinRandom)); // Initialize random generator
-
   Serial.begin (115200);
   localClimate.begin();
-
-
-  char *str = "{\"week_number\":\"04\",\"utc_offset\":\"+02:00\",\"unixtime\":\"1548094898\",\"timezone\":\"Europe/Kiev\",\"dst_until\":null,\"dst_from\":null,\"dst\":false,\"day_of_year\":21,\"day_of_week\":1,\"datetime\":\"2019-01-21T20:21:38.975520+02:00\",\"abbreviation\":\"EET\"}";
-  unixTime = parseTime(str);
-  setTime(unixTime);
+  weather = new Weather();
 }
 
 void loop() {
-
-//  matrix.drawPixel(x, y, HIGH);
-//  matrix.write(); // Send bitmap to display
-
-//  delay(wait);
-
-//  matrix.drawPixel(x, y, LOW); // Erase the old position of our dot
-
-//  do {
-//    switch ( random(4) ) {
-//      case 0: xNext = constrain(x + 1, 0, matrix.width() - 1); yNext = y; break;
-//      case 1: xNext = constrain(x - 1, 0, matrix.width() - 1); yNext = y; break;
-//      case 2: yNext = constrain(y + 1, 0, matrix.height() - 1); xNext = x; break;
-//      case 3: yNext = constrain(y - 1, 0, matrix.height() - 1); xNext = x; break;
-//    }
-//  }
-//  while ( x == xNext && y == yNext ); // Repeat until we find a new coordinate
-
-//  matrix.drawChar(0, 0, 'A', HIGH, LOW, 1);
-
-//  x = xNext;
-//  y = yNext;
-
-
-//  matrix.fillScreen(LOW);
-
-//  matrix.drawChar(0, 0, 'A', HIGH, LOW, 1);
-
-
-
   time_t currentTime = millis();
-
-
+  brightness(currentTime);
+  syncTime();
   timeUpdate(currentTime);
   sliderUpdate(currentTime);
 }

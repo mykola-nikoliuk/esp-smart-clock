@@ -1,21 +1,21 @@
 #include "time.h"
 
 MatchState timeRegex;
+char timeBuffer[10];
 
 int hoursToSeconds(int hours) {
   return hours * 3600;
 }
 
 time_t parseTime(char *str) {
-  // http://worldtimeapi.org/api/ip
+  time_t unixTime = 0;
   int timeOffset = 2;
-  time_t unixTime = 1548007590 + hoursToSeconds(timeOffset);
   unsigned int index = 0;
   char buffer[100];
 
   timeRegex.Target(str);
 
-  char result = timeRegex.Match ("\"utc_offset\":\"%+(%d+):00\".+\"unixtime\":\"(%d+)\"", index);
+  char result = timeRegex.Match("\"utc_offset\":\"%+(%d+):00\".+\"unixtime\":\"(%d+)\"", index);
 
   if (result == REGEXP_MATCHED)
   {
@@ -45,7 +45,6 @@ void printTime() {
 }
 
 char* getShortTime() {
-  char *buffer = new char[6];
   int h = hour();
   int m = minute();
 //  int s = second();
@@ -54,7 +53,7 @@ char* getShortTime() {
   int minuteTens = m / 10;
 
   sprintf(
-    buffer,
+    timeBuffer,
     "%d%d:%d%d",
     hourTens,
     h % 10,
@@ -62,18 +61,16 @@ char* getShortTime() {
     m % 10
   );
 
-  return buffer;
+  return timeBuffer;
 }
 
 char* getSeconds() {
-  char *buffer = new char[3];
   int s = second();
-  sprintf(buffer, "%d%d", s / 10, s % 10);
-  return buffer;
+  sprintf(timeBuffer, "%d%d", s / 10, s % 10);
+  return timeBuffer;
 }
 
 char* getShortDate() {
-  char *buffer = new char[9];
   int y = year() % 100;
   int m = month();
   int d = day();
@@ -83,7 +80,7 @@ char* getShortDate() {
   int dayTens = d / 10;
 
   sprintf(
-    buffer,
+    timeBuffer,
     "%d%d.%d%d.%d%d",
     dayTens,
     d % 10,
@@ -93,5 +90,5 @@ char* getShortDate() {
     y % 10
   );
 
-  return buffer;
+  return timeBuffer;
 }
