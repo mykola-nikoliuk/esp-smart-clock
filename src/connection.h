@@ -8,12 +8,10 @@
 #include "config.h"
 
 class Connection {
-  Connection();
-  static Connection *instance;
-  static Connection* GetInstance();
   static void getRequest(HTTPClient *http);
   public:
-  static int isConnected();
+  static void init();
+  static bool isConnected();
   static char* get(char *url);
   static char* getHTTPS(char *url);
 };

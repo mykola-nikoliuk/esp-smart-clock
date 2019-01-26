@@ -23,6 +23,7 @@ void Weather::update() {
     temperature = atoi(buffer);
     weatherRegex.GetCapture(buffer, 1);
     humidity = atoi(buffer);
+    humidity = humidity > 99 ? 99 : humidity;
     weatherRegex.GetCapture(buffer, 2);
     windSpeed = atoi(buffer);
   }

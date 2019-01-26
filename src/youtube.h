@@ -8,8 +8,8 @@
 
 struct Youtube {
   Youtube();
-  double subscribers;
-  double views;
+  uint32_t subscribers;
+  uint32_t views;
   void update();
 };
 

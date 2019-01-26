@@ -16,7 +16,7 @@
 #define TIME_UPDATE_PERIOD        500
 #define TIME_SYNC_PERIOD          5 * 60
 #define BRIGHTNESS_UPDATE_PERIOD  50
-#define SLIDER_UPDATE_PERIOD      5000
+#define SLIDER_UPDATE_PERIOD      3000
 #define SLIDER_COUNT              4
 
 HTU21D localClimate;
@@ -78,8 +78,6 @@ void timeUpdate(time_t currentTime) {
     }
 
     char *timeStr = getShortTime();
-    Serial.print(timeStr);
-    Serial.print(" | ");
 
     matrix.fillRect(0, 0, numberOfHorizontalDisplays * 8, 8, 0);
 
@@ -92,21 +90,13 @@ void timeUpdate(time_t currentTime) {
     draw5x8(17, 0, timeStr[4]);
 
     char *secondsStr = getSeconds();
-    Serial.println(secondsStr);
+//    Serial.println(secondsStr);
     matrix.setRotation(3, 0);
     draw3x5(25, 3, secondsStr[0]);
     draw3x5(29, 3, secondsStr[1]);
     matrix.setRotation(3, 1);
 
     matrix.write();
-
-    Serial.print(lastTimeSync);
-    Serial.print(" | ");
-    Serial.println(unixTime);
-    Serial.print("sensor: ");
-    Serial.println(analogRead(A0));
-    Serial.print("connection: ");
-    Serial.println(WiFi.status());
   }
 }
 
@@ -167,7 +157,7 @@ void youtubeUpdate() {
 
   youtube->update();
 
-  sprintf(buffer, "%d*%d", youtube->subscribers, youtube->views);
+  sprintf(buffer, "%d>%d", youtube->subscribers, youtube->views);
   draw3x5String(0, 9, buffer);
 }
 
@@ -190,7 +180,7 @@ void sliderUpdate(time_t currentTime) {
         externalClimateUpdate();
         break;
       case 2:
-//        youtubeUpdate();
+        youtubeUpdate();
         break;
       case 3:
         dateUpdate();
@@ -202,7 +192,7 @@ void sliderUpdate(time_t currentTime) {
 }
 
 void syncTime() {
-  if ((lastTimeSync + TIME_SYNC_PERIOD) < unixTime) {
+  if ((lastTimeSync + TIME_SYNC_PERIOD) <= unixTime) {
     if (Connection::isConnected()) {
       Serial.println("Sync time");
       char *payload = Connection::get("http://worldtimeapi.org/api/ip");
@@ -224,11 +214,13 @@ void brightness(time_t currentTime) {
 }
 
 void setup() {
-//  pinMode(tonePin, OUTPUT);
+  Serial.begin(115200);
 
-//  tone(tonePin, 262, 2000);
+  matrix.fillScreen(0);
+  matrix.write();
 
-  matrix.setIntensity(0); // Set brightness between 0 and 15
+  Connection::init();
+
 
 // Adjust to your own needs
   matrix.setPosition(4, 3, 1);
@@ -245,14 +237,14 @@ void setup() {
   matrix.setRotation(6, 3);    // The same hold for the last display
   matrix.setRotation(7, 3);    // The same hold for the last display
 
-  Serial.begin (115200);
   localClimate.begin();
   weather = new Weather();
+  youtube = new Youtube();
 }
 
 void loop() {
   time_t currentTime = millis();
-  brightness(currentTime);
+//  brightness(currentTime);
   syncTime();
   timeUpdate(currentTime);
   sliderUpdate(currentTime);
