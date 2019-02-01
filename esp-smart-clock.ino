@@ -103,10 +103,10 @@ void localClimateUpdate() {
 //  Serial.println("%");
 }
 
-void externalClimateUpdate() {
+void externalClimateUpdate(time_t currentTime) {
   char buffer[5];
 
-  weather->update();
+  weather->update(currentTime);
 
   sprintf(buffer, "%d*", weather->temperature);
   draw3x5String(0, 9, buffer);
@@ -127,13 +127,14 @@ void externalClimateUpdate() {
 //  Serial.println("km/h");
 }
 
-void youtubeUpdate() {
+void youtubeUpdate(time_t currentTime) {
   char buffer[16];
 
-  youtube->update();
-
+  youtube->update(currentTime);
   sprintf(buffer, "%d>%d", youtube->subscribers, youtube->views);
-  draw3x5String(0, 9, buffer);
+
+  int x = (matrix.width() - font3x5TextWidth(buffer)) / 2;
+  draw3x5String(x, 9, buffer);
 }
 
 void sliderUpdate(time_t currentTime) {
@@ -152,10 +153,10 @@ void sliderUpdate(time_t currentTime) {
         localClimateUpdate();
         break;
       case 1:
-        externalClimateUpdate();
+        externalClimateUpdate(currentTime);
         break;
       case 2:
-        youtubeUpdate();
+        youtubeUpdate(currentTime);
         break;
       case 3:
         dateUpdate();

@@ -2,18 +2,18 @@
 
 MatchState youtubeRegex;
 
-Youtube::Youtube() {
+Youtube::Youtube() : AbstractUpdate(YOUTUBE_UPDATE_PERIOD) {
   subscribers = 0;
   views = 0;
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-  }
 }
 
-void Youtube::update() {
-  if (Connection::GetJSON(YOUTUBE_URL, GOOGLE_API_FINGERPRINT)) {
+bool Youtube::updateData() {
+  bool result = Connection::GetJSON(YOUTUBE_URL, GOOGLE_API_FINGERPRINT);
+//  bool result = false;
 
+  Serial.println("Request YOUTUBE");
+
+  if (result) {
     char buffer[16];
     unsigned int index = 0;
 
@@ -27,7 +27,7 @@ void Youtube::update() {
       youtubeRegex.GetCapture(buffer, 1);
       subscribers = atoi(buffer);
     }
-
-//    Serial.printf("s: %d | v: %d", subscribers, views);
   }
+
+  return result;
 }

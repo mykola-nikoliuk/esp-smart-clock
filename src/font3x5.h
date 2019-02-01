@@ -49,4 +49,13 @@ byte font3x5SymbolWidth(int index) {
   return pgm_read_byte(&font3x5Array[index - FONT_3X5_OFFSET][8]);
 }
 
+int font3x5TextWidth(char* text) {
+  int length = 0;
+  int textLength = strlen(text);
+  for (int i = 0; i < textLength; i++) {
+    length += font3x5SymbolWidth(text[i]);
+  }
+  return length + (textLength - 1);
+}
+
 #endif

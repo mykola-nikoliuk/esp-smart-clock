@@ -12,4 +12,7 @@
 #define YOUTUBE_URL "https://www.googleapis.com/youtube/v3/channels?part=statistics&id=" YOUTUBE_ID "&key=" YOUTUBE_KEY
 const char GOOGLE_API_FINGERPRINT[] PROGMEM = "7C 63 08 E2 83 2B 4C B0 94 E3 34 D3 7E 80 E6 61 5B 5A 26 0B";
 
+#define YOUTUBE_UPDATE_PERIOD 5 * 60 * 1000
+#define WEATHER_UPDATE_PERIOD 5 * 1000
+
 #endif

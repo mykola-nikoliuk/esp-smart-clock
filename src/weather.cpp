@@ -2,14 +2,18 @@
 
 MatchState weatherRegex;
 
-Weather::Weather() {
+Weather::Weather() : AbstractUpdate(WEATHER_UPDATE_PERIOD) {
   temperature = 0;
   humidity = 0;
   windSpeed = 0;
 }
 
-void Weather::update() {
-  if (Connection::GetJSON(WEATHER_URL)) {
+bool Weather::updateData() {
+  bool result = Connection::GetJSON(WEATHER_URL);
+
+  Serial.println("Request WEATHER");
+
+  if (result) {
 
     char buffer[100];
     unsigned int index = 0;
@@ -28,4 +32,6 @@ void Weather::update() {
       windSpeed = atoi(buffer);
     }
   }
+
+  return result;
 }
