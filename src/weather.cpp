@@ -9,22 +9,23 @@ Weather::Weather() {
 }
 
 void Weather::update() {
-  char *payload = Connection::get(WEATHER_URL);
+  if (Connection::GetJSON(WEATHER_URL)) {
 
-  char buffer[100];
-  unsigned int index = 0;
+    char buffer[100];
+    unsigned int index = 0;
 
-  weatherRegex.Target(payload);
-  char result = weatherRegex.Match ("\"temp\":([-%d.]+).+\"humidity\":([%d.]+).+\"speed\":([%d.]+)", index);
+    weatherRegex.Target(Connection::ConnectionBuffer);
+    char result = weatherRegex.Match ("\"temp\":([-%d.]+).+\"humidity\":([%d.]+).+\"speed\":([%d.]+)", index);
 
-  if (result == REGEXP_MATCHED)
-  {
-    weatherRegex.GetCapture(buffer, 0);
-    temperature = atoi(buffer);
-    weatherRegex.GetCapture(buffer, 1);
-    humidity = atoi(buffer);
-    humidity = humidity > 99 ? 99 : humidity;
-    weatherRegex.GetCapture(buffer, 2);
-    windSpeed = atoi(buffer);
+    if (result == REGEXP_MATCHED)
+    {
+      weatherRegex.GetCapture(buffer, 0);
+      temperature = atoi(buffer);
+      weatherRegex.GetCapture(buffer, 1);
+      humidity = atoi(buffer);
+      humidity = humidity > 99 ? 99 : humidity;
+      weatherRegex.GetCapture(buffer, 2);
+      windSpeed = atoi(buffer);
+    }
   }
 }

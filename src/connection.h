@@ -2,18 +2,30 @@
 #define __CONNECTION__
 
 #include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
-#include <WiFiClientSecureBearSSL.h>
+#include "lib/Regexp/Regexp.h"
 #include "config.h"
 
+#define CONNECTION_BUFFER_SIZE 1024
+
+#define NTP_SERVER = "time.nist.gov";
+
+struct Header {
+  Header();
+  uint32_t contentLength;
+};
+
 class Connection {
-  static void getRequest(HTTPClient *http);
+  static void ReadHeader(Client *client, Header *header);
+  static void ReadBody(Client *client, Header *header);
+  static bool GetRequest(Client *client, char *url, uint32_t port);
   public:
-  static void init();
-  static bool isConnected();
-  static char* get(char *url);
-  static char* getHTTPS(char *url);
+  static char ConnectionBuffer[CONNECTION_BUFFER_SIZE];
+  static void Init();
+  static bool IsConnected();
+  static char* GetBufferPointer();
+  static bool GetJSON(char *url);
+  static bool GetJSON(char *url, const char *fingerPrint);
 };
 
 #endif

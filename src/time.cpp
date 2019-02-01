@@ -3,31 +3,6 @@
 MatchState timeRegex;
 char timeBuffer[10];
 
-int hoursToSeconds(int hours) {
-  return hours * 3600;
-}
-
-time_t parseTime(char *str) {
-  time_t unixTime = 0;
-  int timeOffset = 2;
-  unsigned int index = 0;
-  char buffer[100];
-
-  timeRegex.Target(str);
-
-  char result = timeRegex.Match("\"utc_offset\":\"%+(%d+):00\".+\"unixtime\":\"(%d+)\"", index);
-
-  if (result == REGEXP_MATCHED)
-  {
-    timeRegex.GetCapture(buffer, 0);
-    timeOffset = atoi(buffer);
-    timeRegex.GetCapture(buffer, 1);
-    unixTime = atol(buffer);
-  }
-
-  return unixTime + hoursToSeconds(timeOffset);
-}
-
 void printTime() {
   Serial.print(year());
   Serial.print("/");

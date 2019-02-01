@@ -2,12 +2,9 @@
 #define __CLOCK_TIME__
 
 #include <Arduino.h>
+#include <time.h>
 #include "lib/Time/TimeLib.h"
 #include "lib/Regexp/Regexp.h"
-
-int hoursToSeconds(int hours);
-
-time_t parseTime(char *str);
 
 void printTime();
 char* getShortTime();
