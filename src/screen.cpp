@@ -34,10 +34,10 @@ void Screen::brightnessUpdate(time_t currentTime) {
   if (lastBrightnessUpdate + BRIGHTNESS_UPDATE_PERIOD <= currentTime) {
     lastBrightnessUpdate = currentTime;
 
-//    int b = analogRead(A0) / 800. * 14 + 1;
-//    b = b > 15 ? 15 : b;
-//    brightness->update(b);
-//    this->setIntensity(brightness->value());
+    int b = analogRead(A0) / 800. * 14 + 1;
+    b = b > 15 ? 15 : b;
+    brightness->update(b);
+    this->setIntensity(brightness->value());
 
 //    Serial.print(analogRead(A0));
 //    Serial.print(" | ");

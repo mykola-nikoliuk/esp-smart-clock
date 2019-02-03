@@ -5,7 +5,7 @@
 
 // time
 #define TZ_HOURS 2
-#define DST_HOURS 1
+#define DST_HOURS 0
 
 // internet api
 #define WEATHER_URL "http://api.openweathermap.org/data/2.5/weather?lat=50.3873046&lon=30.624428&units=metric&appid=" OPENWEATHERMAP_ID

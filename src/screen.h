@@ -5,7 +5,7 @@
 #include "./lib/Max72xxPanel/Max72xxPanel.h"
 #include "./utils/average.h"
 
-#define BRIGHTNESS_UPDATE_PERIOD  1000
+#define BRIGHTNESS_UPDATE_PERIOD  50
 
 class Screen : public Max72xxPanel {
 
